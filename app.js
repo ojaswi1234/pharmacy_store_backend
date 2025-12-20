@@ -65,7 +65,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// app.options('(.*)', cors(corsOptions)); // Enable pre-flight for all routes
 
 const connectMongo = async() => {
     try{
@@ -629,9 +628,14 @@ app.get('/api/my-orders', async (req, res) => {
         if (!email) {
             return res.status(400).json({ message: "Email is required" });
         }
-        const orders = await Order.find({ customer: email }).sort({ date: -1 });
+        // Case-insensitive search for the email
+        const orders = await Order.find({ 
+            customer: { $regex: new RegExp(`^${email.trim()}$`, 'i') } 
+        }).sort({ date: -1 });
+        
         res.json(orders);
     } catch (err) {
+        console.error("Error in /api/my-orders:", err);
         res.status(500).json({ message: "Error fetching orders", error: err.message });
     }
 });
