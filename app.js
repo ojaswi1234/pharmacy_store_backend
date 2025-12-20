@@ -225,7 +225,7 @@ app.get('/api/medicines/:id', async (req, res) => {
 });
 
 // POST - Add new medicine
-app.post('/api/medicines', async (req, res) => {
+app.post('/api/medicines', upload.single('image'), async (req, res) => {
     try {
         const { name, category, price, quantity, expiry, manufacturer } = req.body;
         
@@ -233,14 +233,20 @@ app.post('/api/medicines', async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        const newMedicine = await Medicine.create({
+        const medicineData = {
             name,
             category,
             price,
             quantity,
             expiry,
             manufacturer
-        });
+        };
+
+        if (req.file) {
+            medicineData.image = req.file.path;
+        }
+
+        const newMedicine = await Medicine.create(medicineData);
 
         res.status(201).json({ message: "Medicine added successfully", medicine: newMedicine });
     } catch (err) {
@@ -249,13 +255,19 @@ app.post('/api/medicines', async (req, res) => {
 });
 
 // PUT - Update medicine
-app.put('/api/medicines/:id', async (req, res) => {
+app.put('/api/medicines/:id', upload.single('image'), async (req, res) => {
     try {
         const { name, category, price, quantity, expiry, manufacturer } = req.body;
         
+        const updateData = { name, category, price, quantity, expiry, manufacturer };
+        
+        if (req.file) {
+            updateData.image = req.file.path;
+        }
+
         const updatedMedicine = await Medicine.findByIdAndUpdate(
             req.params.id,
-            { name, category, price, quantity, expiry, manufacturer },
+            updateData,
             { new: true, runValidators: true }
         );
 
@@ -484,10 +496,14 @@ app.put('/api/admin/profile', verifyToken, async (req, res) => {
 
         // Update password if provided
         if (newPassword) {
-            // In a real app, verify currentPassword first
-            if (currentPassword && currentPassword === admin.password) {
-                 admin.password = newPassword;
-            } else if (currentPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ message: "Current password is required" });
+            }
+            
+            const isMatch = await bcrypt.compare(currentPassword, admin.password);
+            if (isMatch) {
+                 admin.password = await bcrypt.hash(newPassword, 10);
+            } else {
                  return res.status(400).json({ message: "Incorrect current password" });
             }
         }
@@ -501,7 +517,42 @@ app.put('/api/admin/profile', verifyToken, async (req, res) => {
 
 // --- CUSTOMER ROUTES ---
 
+// PUT - Update customer profile
+app.put('/api/customer/profile', verifyToken, async (req, res) => {
+    try {
+        const { name, email, phone, currentPassword, newPassword } = req.body;
+        
+        // Note: verifyToken sets req.userId and req.userRole. 
+        // Ensure customer login sets these correctly in the token.
+        // Currently customer_login sets role: 'customer'.
+        
+        const customer = await Customer.findById(req.userId);
+        if (!customer) {
+            return res.status(404).json({ message: "Customer not found" });
+        }
 
+        if (name) customer.name = name;
+        if (email) customer.email = email;
+        if (phone) customer.phone = phone;
+
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ message: "Current password is required" });
+            }
+            const isMatch = await bcrypt.compare(currentPassword, customer.password);
+            if (isMatch) {
+                customer.password = await bcrypt.hash(newPassword, 10);
+            } else {
+                return res.status(400).json({ message: "Incorrect current password" });
+            }
+        }
+
+        await customer.save();
+        res.status(200).json({ message: "Profile updated successfully", customer: { name: customer.name, email: customer.email, phone: customer.phone } });
+    } catch (err) {
+        res.status(500).json({ message: "Error updating profile", error: err.message });
+    }
+});
 
 // GET single medicine details
 app.get('/api/medicines/:id', async (req, res) => {

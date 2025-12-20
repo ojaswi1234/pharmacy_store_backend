@@ -35,6 +35,10 @@ const medicineSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    image: {
+        type: String,
+        default: ""
+    },
     prescriptionRequired: {
         type: Boolean,
         default: false
