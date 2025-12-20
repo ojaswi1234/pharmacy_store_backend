@@ -35,12 +35,37 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-app.use(cors(
-    {
-        origin: ['http://localhost:5173', 'http://localhost:5000', 'https://pharmacy-store-backend.onrender.com', 'https://pharmacy-store-frontend-roan.vercel.app'], 
-        credentials: true
-    }
-));
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'http://localhost:5173', 
+            'http://localhost:5000', 
+            'https://pharmacy-store-backend.onrender.com', 
+            'https://pharmacy-store-frontend-roan.vercel.app',
+            'https://pharmacy-store-frontend-gfz8f8k7k-ojaswi1234s-projects.vercel.app'
+        ];
+        
+        // Allow any Vercel preview deployment for this project
+        if (allowedOrigins.includes(origin) || 
+            origin.includes('ojaswi1234s-projects.vercel.app') || 
+            origin.includes('pharmacy-store-frontend') ||
+            origin.endsWith('.vercel.app')) {
+            return callback(null, true);
+        }
+        
+        console.log('Blocked by CORS:', origin);
+        callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
 
 const connectMongo = async() => {
     try{
