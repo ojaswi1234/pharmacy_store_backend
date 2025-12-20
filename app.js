@@ -33,7 +33,7 @@ const upload = multer({ storage: storage });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -65,7 +65,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('(.*)', cors(corsOptions)); // Enable pre-flight for all routes
+// app.options('(.*)', cors(corsOptions)); // Enable pre-flight for all routes
 
 const connectMongo = async() => {
     try{
