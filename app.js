@@ -65,7 +65,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+app.options('(.*)', cors(corsOptions)); // Enable pre-flight for all routes
 
 const connectMongo = async() => {
     try{
