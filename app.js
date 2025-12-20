@@ -37,7 +37,7 @@ app.use('/uploads', express.static('uploads'));
 
 app.use(cors(
     {
-        origin: ['http://localhost:5173', 'http://localhost:5000'], 
+        origin: ['http://localhost:5173', 'http://localhost:5000', 'https://pharmacy-store-backend.onrender.com', 'https://pharmacy-store-frontend-roan.vercel.app'], 
         credentials: true
     }
 ));
