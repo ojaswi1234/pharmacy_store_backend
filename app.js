@@ -664,17 +664,41 @@ app.put('/api/orders/:id/cancel', async (req, res) => {
 // GET analytics data
 app.get('/api/analytics', verifyToken, async (req, res) => {
     try {
-        // 1. Sales Data (Last 7 days) - Mocked for now as we don't have historical order data structure fully populated
-        // In a real app, you'd aggregate Order.find({ date: { $gte: sevenDaysAgo } })
-        const salesData = [
-            { name: 'Mon', sales: 4000 },
-            { name: 'Tue', sales: 3000 },
-            { name: 'Wed', sales: 2000 },
-            { name: 'Thu', sales: 2780 },
-            { name: 'Fri', sales: 1890 },
-            { name: 'Sat', sales: 2390 },
-            { name: 'Sun', sales: 3490 },
-        ];
+        // 1. Sales Data (Last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const salesAggregation = await Order.aggregate([
+            {
+                $match: {
+                    date: { $gte: sevenDaysAgo },
+                    status: { $ne: 'Cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    totalSales: { $sum: "$total" }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Format data for the chart (ensure all 7 days are present)
+        const salesData = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateString = d.toISOString().split('T')[0];
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+            
+            const found = salesAggregation.find(item => item._id === dateString);
+            salesData.push({
+                name: dayName,
+                sales: found ? found.totalSales : 0
+            });
+        }
 
         // 2. Inventory Status
         const totalMedicines = await Medicine.countDocuments();
