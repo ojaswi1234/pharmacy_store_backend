@@ -48,11 +48,10 @@ const corsOptions = {
             'https://pharmacy-store-frontend-gfz8f8k7k-ojaswi1234s-projects.vercel.app'
         ];
         
-        // Allow any Vercel preview deployment for this project
+        // Allow any Vercel preview deployment for this specific project only
         if (allowedOrigins.includes(origin) || 
             origin.includes('ojaswi1234s-projects.vercel.app') || 
-            origin.includes('pharmacy-store-frontend') ||
-            origin.endsWith('.vercel.app')) {
+            origin.includes('pharmacy-store-frontend')) {
             return callback(null, true);
         }
         
